@@ -9,7 +9,8 @@ set -euo pipefail
 trap ctrl_c INT
 
 function ctrl_c() {
-  echo -e "\e[31mAusführung des Script wurde abgebrochen.\e[39m"
+  echo -e "\e[31m
+  Ausführung des Script wurde abgebrochen.\e[39m"
 
   if [[ $ScriptFolderPath = *"$ProjectFolderName" ]]; then
     rm -r "$ScriptFolderPath"
@@ -26,7 +27,9 @@ function error() {
 Fehler beim ausführen des Scripts, folgender Vorgang ist fehlgeschlagen:
 $1
 Bitte prüfe den Log-Output.\e[39m"
-  rm -r "$ScriptFolderPath"
+  if [[ $ScriptFolderPath = *"$ProjectFolderName" ]]; then
+    rm -r "$ScriptFolderPath"
+  fi
   exit 1
 }
 
@@ -727,4 +730,6 @@ Passwort: $var3CXPW
 ########################################## Script end ################################################
 
 # Löschen des Script wenn fertig
-rm -r "$ScriptFolderPath"
+  if [[ $ScriptFolderPath = *"$ProjectFolderName" ]]; then
+    rm -r "$ScriptFolderPath"
+  fi
