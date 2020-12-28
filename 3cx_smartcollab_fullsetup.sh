@@ -16,6 +16,7 @@ error() {
 Fehler beim ausführen des Scripts, folgender Vorgang ist fehlgeschlagen:
 $1
 Bitte prüfe den Log-Output.\e[39m"
+rm -r "$ScriptFolderPath"
   exit 1
 }
 
