@@ -8,6 +8,20 @@
 set -euo pipefail
 trap ctrl_c INT
 
+function CheckPWStrenght() {
+
+  varPasswordOK="false"
+  local PW="$1"
+  local PWLenght="${#PW}"
+
+  if [[ $PW =~ [0-9] ]] && [[ $PW =~ [a-z] ]] && [[ $PW =~ [A-Z] ]] && [[ $PWLenght -ge 18 ]] && [[ $PW == *['!'@#\$%^\&.,-+*()_+]* ]]; then
+    varPasswordOK="true"
+  else
+    echo -e "\e[31mPasswort entspricht nicht den Komplexitätsanforderungen!\e[39m"
+  fi
+
+}
+
 function ctrl_c() {
   echo ""
   echo -e "\e[31mAusführung des Script wurde abgebrochen.\e[39m"
@@ -463,14 +477,6 @@ EOF
 
 }
 
-
-
-
-
-
-
-
-
 ########################################## Script entry point ################################################
 
 MyPublicIP=$(curl ipinfo.io/ip)
@@ -523,64 +529,43 @@ while [[ $FormDataOK != "j" ]]; do
   varContentValid="false"
   while [[ $varContentValid = "false" ]]; do
     echo "Folgende public IP wurde erkannt, drücke Enter wenn diese korrekt ist oder passe sie manuell an:"
-    read -r -e -i "$MyPublicIP" MyPublicIP
+    read -r -e -p "IP:" -i "$MyPublicIP" MyPublicIP
     if ! [[ $MyPublicIP =~ [^0-9.] ]]; then
       varContentValid="true"
     else
       echo -e "\e[31mKeine gültige Eingabe!\e[39m"
     fi
-
   done
 
   varDomainRecordOK="false"
-
   while [[ $varDomainRecordOK = "false" ]]; do
-
-    if [[ $varDomain = "" ]]; then
-
-      while [[ $varDomain = "" ]]; do
-        echo "Bitte die gewünschte smartcollab.ch Subdomain eingeben:"
-        read -r varDomain
-        CheckDomainRecord "$varDomain.smartcollab.ch" "$MyPublicIP"
-      done
-
-    else
-
-      echo "Bitte die gewünschte smartcollab.ch Subdomain eingeben:"
-      read -r -e -i "$varDomain" varDomain
-      CheckDomainRecord "$varDomain.smartcollab.ch" "$MyPublicIP"
-    fi
-
+    echo "Bitte die gewünschte smartcollab.ch Subdomain eingeben:"
+    read -r -e -p "Domain:" -i "$varDomain" varDomain
+    CheckDomainRecord "$varDomain.smartcollab.ch" "$MyPublicIP"
   done
 
   varContentValid="false"
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte den 3CX Lizenzschlüssel eingeben:"
-    read -r -e -i "$varLicense" varLicense
+    read -r -e -p "Lizenz:" -i "$varLicense" varLicense
     if ! [[ $varLicense =~ [^0-9a-zA-Z-] ]]; then
       varContentValid="true"
     else
       echo -e "\e[31mKeine gültige Eingabe!\e[39m"
     fi
-
   done
 
-  varContentValid="false"
-  while [[ $varContentValid = "false" ]]; do
-    echo "Bitte ein 3CX MGM PW eingeben:"
-    read -r -e -i "$var3CXPW" var3CXPW
-    if  [[ $var3CXPW -lt 10 ]] && [[ $var3CXPW =~ [A-Z] ]] && [[ $var3CXPW =~ [a-z] ]] && [[ $var3CXPW =~ [0-9] ]] && [[ $var3CXPW =~ ["+!_.,-?#Ç[]|{}≠=)(/&%ç*"] ]]; then
-      varContentValid="true"
-    else
-      echo -e "\e[31mPasswort entspricht nicht den Komplexitätsanforderungen!\e[39m"
-    fi
-
+  varPasswordOK="false"
+  while [[ $varPasswordOK = "false" ]]; do
+    echo "Bitte ein 3CX MGM PW eingeben (mindestens 18 Zeichen, 1 Grossbuchstabe, 1 Kleinbuchstabe, 1 Zahl und 1 Sonderzeichen):"
+    read -r -e -p "Passwort:" -i "$var3CXPW" var3CXPW
+    CheckPWStrenght "$var3CXPW"
   done
 
   varContentValid="false"
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte den vollen Namen der Kontaktperson des Kunden eingeben (wird für Lizenzregistrierung verwendet):"
-    read -r -e -i "$varLicenseContactName" varLicenseContactName
+    read -r -e -p "Name:" -i "$varLicenseContactName" varLicenseContactName
     if ! [[ $varLicenseContactName =~ [^a-zA-Z" "] ]]; then
       varContentValid="true"
     else
@@ -592,7 +577,7 @@ while [[ $FormDataOK != "j" ]]; do
   varContentValid="false"
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte den Firmennamen des Kunden eingeben (wird für Lizenzregistrierung verwendet):"
-    read -r -e -i "$varLicenseContactCompany" varLicenseContactCompany
+    read -r -e -p "Firma:" -i "$varLicenseContactCompany" varLicenseContactCompany
     if ! [[ $varLicenseContactCompany =~ [^a-zA-Z0-9" "] ]]; then
       varContentValid="true"
     else
@@ -604,25 +589,23 @@ while [[ $FormDataOK != "j" ]]; do
   varContentValid="false"
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte die E-Mail der Kontaktperson des Kunden eingeben (wird für Lizenzregistrierung verwendet):"
-    read -r -e -i "$varLicenseContactEmail" varLicenseContactEmail
+    read -r -e -p "E-Mail:" -i "$varLicenseContactEmail" varLicenseContactEmail
     if ! [[ $varLicenseContactEmail =~ [^a-zA-Z0-9@] ]]; then
       varContentValid="true"
     else
       echo -e "\e[31mKeine gültige Eingabe!\e[39m"
     fi
-
   done
 
   varContentValid="false"
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte die HRN der Firma eingeben in folgendem Format +41444444444:"
-    read -r -e -i "$varLicenseContactPhone" varLicenseContactPhone
-    if ! [[ $varLicenseContactPhone =~ [^0-9+] ]]; then
+    read -r -e -p "HRN:" -i "$varLicenseContactPhone" varLicenseContactPhone
+    if [[ ${#varLicenseContactPhone} = 12 ]] && ! [[ $varLicenseContactPhone =~ [^0-9+] ]]; then
       varContentValid="true"
     else
-      echo -e "\e[31mKeine gültige Eingabe!\e[39m"
+      echo -e "\e[31mKeine gültige Rufnummer!\e[39m"
     fi
-
   done
 
   echo "
