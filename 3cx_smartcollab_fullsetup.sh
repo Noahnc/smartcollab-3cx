@@ -82,7 +82,7 @@ EOF
 
 }
 
-CheckDomainRecord() {
+function CheckDomainRecord() {
 
   # Variable zurücksetzen auf default
   varDomainRecordOK="true"
@@ -106,18 +106,38 @@ CheckDomainRecord() {
 
 }
 
-RequestCertificate() {
-  varDomain=${1}
+function RequestCertificate() {
 
   # Zertifikat beantragen
-  certbot certonly --standalone -d "$varDomain" --non-interactive --agree-tos -m support@btcjost.ch || error "Beantragen des Zertifikats für $varDomain über LetsEncrypt fehlgeschlagen"
+  certbot certonly --standalone -d "${1}" --non-interactive --agree-tos -m support@btcjost.ch || error "Beantragen des Zertifikats für ${1} über LetsEncrypt fehlgeschlagen"
 
   # Provisorische kopie ins SSL Directory erstellen für 3CX Setup
-  cp /etc/letsencrypt/live/"$varDomain"/privkey.pem /etc/ssl/ && cp /etc/letsencrypt/live/"$varDomain"/fullchain.pem /etc/ssl/ || error "Zertifikat für $varDomain konnte nicht ins SSL Verzeichniss kopiert werden"
+  cp /etc/letsencrypt/live/"${1}"/privkey.pem /etc/ssl/ && cp /etc/letsencrypt/live/"${1}"/fullchain.pem /etc/ssl/ || error "Zertifikat für ${1} konnte nicht ins SSL Verzeichniss kopiert werden"
 
 }
 
-Create3CXConfig() {
+function ConfigureCertbot() {
+
+  # pre und post Hook erstellen (wird jedes mal vor und nach Zertifikatserneuerung ausgeführt)
+  echo "pre_hook = service nginx stop" >>"/etc/letsencrypt/renewal/${1}.conf" || error "Cerbot Pre-Hook konnte nicht angelegt werden"
+  echo "post_hook = cp /etc/letsencrypt/live/${1}/privkey.pem /var/lib/3cxpbx/Bin/nginx/conf/Instance1/${1}-key.pem && cp /etc/letsencrypt/live/${1}/fullchain.pem /var/lib/3cxpbx/Bin/nginx/conf/Instance1/${1}-crt.pem && service nginx start" >>"/etc/letsencrypt/renewal/$varDomain.conf" || error "Cerbot Post-Hook konnte nicht angelegt werden"
+
+}
+
+function SetupFW() {
+
+  # Konfigurieren der Firewall.
+  ufw default deny incoming
+  ufw default allow outgoing
+  ufw allow 22
+  ufw allow 80
+  ufw allow 443
+  ufw allow 5090
+  yes | ufw enable
+
+}
+
+function Create3CXConfig() {
 
   local varTrunkMainNumber="${varLicenseContactPhone:1}"
 
@@ -443,40 +463,6 @@ EOF
 
 }
 
-InstallCertbot() {
-
-  apt-get install certbot -y || error "Installation von Certbot fehlgeschlagen"
-
-}
-
-InstallUFW() {
-
-  apt-get install ufw -y || error "Installation der UFW Firewall fehlgeschlagen"
-
-}
-
-ConfigureCertbot() {
-  varDomain=${1}
-
-  # pre und post Hook erstellen (wird jedes mal vor und nach Zertifikatserneuerung ausgeführt)
-  echo "pre_hook = service nginx stop" >>"/etc/letsencrypt/renewal/$varDomain.conf" || error "Cerbot Pre-Hook konnte nicht angelegt werden"
-  echo "post_hook = rm /var/lib/3cxpbx/Bin/nginx/conf/Instance1/$varDomain-key.pem && rm /var/lib/3cxpbx/Bin/nginx/conf/Instance1/$varDomain-crt.pem && cp /etc/letsencrypt/live/$varDomain/privkey.pem /var/lib/3cxpbx/Bin/nginx/conf/Instance1/$varDomain-key.pem && cp /etc/letsencrypt/live/$varDomain/fullchain.pem /var/lib/3cxpbx/Bin/nginx/conf/Instance1/$varDomain-crt.pem && service nginx start" >>"/etc/letsencrypt/renewal/$varDomain.conf" || error "Cerbot Post-Hook konnte nicht angelegt werden"
-
-}
-
-CreateFWConfig() {
-
-  # Konfigurieren der Firewall.
-  ufw default deny incoming
-  ufw default allow outgoing
-  ufw allow 22
-  ufw allow 80
-  ufw allow 443
-  ufw allow 5090
-  #yes | ufw enable
-
-}
-
 ########################################## Script entry point ################################################
 
 MyPublicIP=$(curl ipinfo.io/ip)
@@ -654,7 +640,7 @@ varDomain="$varDomain.managed-network.ch"
 
 # UFW Firewall installieren
 if ! [ -x "$(command -v ufw)" ]; then
-  InstallUFW
+  apt-get install ufw -y || error "Installation der UFW Firewall fehlgeschlagen"
   OK "UFW Firewall wurde erfolgreich einstalliert"
 else
   OK "UFW ist bereits installiert"
@@ -662,7 +648,7 @@ fi
 
 # Certbot installieren
 if ! [ -x "$(command -v certbot)" ]; then
-  InstallCertbot
+  apt-get install certbot -y || error "Installation von Certbot fehlgeschlagen"
   OK "Certbot erfolgreich installiert"
 else
   OK "Certbot ist bereits installiert"
@@ -730,6 +716,6 @@ Passwort: $var3CXPW
 ########################################## Script end ################################################
 
 # Löschen des Script wenn fertig
-  if [[ $ScriptFolderPath = *"$ProjectFolderName" ]]; then
-    rm -r "$ScriptFolderPath"
-  fi
+if [[ $ScriptFolderPath = *"$ProjectFolderName" ]]; then
+  rm -r "$ScriptFolderPath"
+fi
