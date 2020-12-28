@@ -463,6 +463,14 @@ EOF
 
 }
 
+
+
+
+
+
+
+
+
 ########################################## Script entry point ################################################
 
 MyPublicIP=$(curl ipinfo.io/ip)
@@ -561,10 +569,10 @@ while [[ $FormDataOK != "j" ]]; do
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte ein 3CX MGM PW eingeben:"
     read -r -e -i "$var3CXPW" var3CXPW
-    if ! [[ $var3CXPW =~ [^0-9a-zA-Z-!_] ]]; then
+    if  [[ $var3CXPW -lt 10 ]] && [[ $var3CXPW =~ [A-Z] ]] && [[ $var3CXPW =~ [a-z] ]] && [[ $var3CXPW =~ [0-9] ]] && [[ $var3CXPW =~ ["+!_.,-?#Ç[]|{}≠=)(/&%ç*"] ]]; then
       varContentValid="true"
     else
-      echo -e "\e[31mKeine gültige Eingabe!\e[39m"
+      echo -e "\e[31mPasswort entspricht nicht den Komplexitätsanforderungen!\e[39m"
     fi
 
   done
@@ -585,7 +593,7 @@ while [[ $FormDataOK != "j" ]]; do
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte den Firmennamen des Kunden eingeben (wird für Lizenzregistrierung verwendet):"
     read -r -e -i "$varLicenseContactCompany" varLicenseContactCompany
-    if ! [[ $varLicenseContactCompany =~ [^a-zA-Z0-9] ]]; then
+    if ! [[ $varLicenseContactCompany =~ [^a-zA-Z0-9" "] ]]; then
       varContentValid="true"
     else
       echo -e "\e[31mKeine gültige Eingabe!\e[39m"
