@@ -1,11 +1,34 @@
 #!/bin/bash
 
-##############################################################################################################
-####################################### CoppyRight by Noah Canadea ###########################################
-##############################################################################################################
+########################################################################
+#         Copyright © by Noah Canadea | All rights reserved
+########################################################################
+#                           Description
+#       Bash Script zum erstellen von btc 3CX smartcollab Instanzen
+#
+#                    Version 1.0 | 29.12.2020
+
+
+# Global variables
+MyPublicIP=$(curl ipinfo.io/ip)
+DependenciesOK=
+varDomain=
+varContentValid=
+varDomainRecordOK=
+varLicense=
+var3CXPW=
+varLicenseContactName=
+varLicenseContactCompany=
+varLicenseContactEmail=
+varLicenseContactPhone=
+FormDataOK=
+ScriptFolderPath="$(dirname -- "$0")"
+ProjectFolderName="smartcollab-3cx"
 
 # Beende das Script sollte ein Fehler auftreten
 set -euo pipefail
+
+# Auffangen des Shell Terminator
 trap ctrl_c INT
 
 function CheckPWStrenght() {
@@ -479,21 +502,6 @@ EOF
 
 ########################################## Script entry point ################################################
 
-MyPublicIP=$(curl ipinfo.io/ip)
-DependenciesOK=
-varDomain=
-varContentValid=
-varDomainRecordOK=
-varLicense=
-var3CXPW=
-varLicenseContactName=
-varLicenseContactCompany=
-varLicenseContactEmail=
-varLicenseContactPhone=
-FormDataOK=
-ScriptFolderPath="$(dirname -- "$0")"
-ProjectFolderName="smartcollab-3cx"
-
 echo -e " \e[34m
                   _____               _               _     _         
                  |___ /  _____  __   | |__  _   _    | |__ | |_ ___   
@@ -590,7 +598,7 @@ while [[ $FormDataOK != "j" ]]; do
   while [[ $varContentValid = "false" ]]; do
     echo "Bitte die E-Mail der Kontaktperson des Kunden eingeben (wird für Lizenzregistrierung verwendet):"
     read -r -e -p "E-Mail: " -i "$varLicenseContactEmail" varLicenseContactEmail
-    if ! [[ $varLicenseContactEmail =~ [^a-zA-Z0-9@] ]]; then
+    if ! [[ $varLicenseContactEmail =~ [^a-zA-Z0-9@.] ]]; then
       varContentValid="true"
     else
       echo -e "\e[31mKeine gültige Eingabe!\e[39m"
