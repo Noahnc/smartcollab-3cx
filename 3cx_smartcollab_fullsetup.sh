@@ -487,6 +487,7 @@ varLicenseContactEmail=
 varLicenseContactPhone=
 FormDataOK=
 ScriptAbsolutPath="$(readlink -f "$0")"
+ScriptFolderPath="$(dirname -- "$0")"
 
 echo -e " \e[34m
                   _____               _               _     _         
@@ -514,6 +515,7 @@ done
 # Script beenden, wenn nicht alle Bedingungen OK
 if [[ $DependenciesOK == "n" ]]; then
   echo "Bitte sorg dafür dass alle Bedingunen erfüllt sind und starte dann das Script erneut, bis bald."
+  rm -r "$ScriptFolderPath"
   exit
 fi
 
@@ -724,4 +726,4 @@ Passwort: $var3CXPW
 ########################################## Script end ################################################
 
 # Löschen des Script wenn fertig
-rm "$ScriptAbsolutPath"
+rm -r "$ScriptFolderPath"
