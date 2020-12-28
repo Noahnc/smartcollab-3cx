@@ -9,8 +9,8 @@ set -euo pipefail
 trap ctrl_c INT
 
 function ctrl_c() {
-  echo -e "\e[31m
-  Ausführung des Script wurde abgebrochen.\e[39m"
+  echo ""
+  echo -e "\e[31mAusführung des Script wurde abgebrochen.\e[39m"
 
   if [[ $ScriptFolderPath = *"$ProjectFolderName" ]]; then
     rm -r "$ScriptFolderPath"
