@@ -6,21 +6,31 @@
 
 # Beende das Script sollte ein Fehler auftreten
 set -euo pipefail
+trap ctrl_c INT
 
-OK() {
+function ctrl_c() {
+  echo -e "\e[31mAusführung des Script wurde abgebrochen.\e[39m"
+
+  if [[ $ScriptFolderPath = *"$ProjectFolderName" ]]; then
+    rm -r "$ScriptFolderPath"
+  fi
+  exit 1
+}
+
+function OK() {
   echo -e "\e[32m$1\e[39m"
 }
 
-error() {
+function error() {
   echo -e "\e[31m
 Fehler beim ausführen des Scripts, folgender Vorgang ist fehlgeschlagen:
 $1
 Bitte prüfe den Log-Output.\e[39m"
-rm -r "$ScriptFolderPath"
+  rm -r "$ScriptFolderPath"
   exit 1
 }
 
-Install3CX() {
+function Install3CX() {
   wget -O- http://downloads-global.3cx.com/downloads/3cxpbx/public.key | sudo apt-key add -
   echo "deb http://downloads-global.3cx.com/downloads/debian stretch main" | sudo tee /etc/apt/sources.list.d/3cxpbx.list
   sudo apt update
@@ -29,7 +39,7 @@ Install3CX() {
 
 }
 
-CreateLoginBanner() {
+function CreateLoginBanner() {
 
   if [[ -f "/etc/motd" ]]; then
     rm /etc/motd
@@ -105,17 +115,8 @@ RequestCertificate() {
 }
 
 Create3CXConfig() {
-  varDomain=${1}
-  varFullChainPath=${2}
-  varKeyPath=${3}
-  varLicense=${4}
-  var3CXPW=${5}
-  varLicenseContactName=${6}
-  varLicenseContactCompany=${7}
-  varLicenseContactEmail=${8}
-  varLicenseContactPhone=${9}
-  varTrunkMainNumber="${varLicenseContactPhone:1}"
-  MyPublicIP=${10}
+
+  local varTrunkMainNumber="${varLicenseContactPhone:1}"
 
   mkdir -p /etc/3cxpbx
   cat >/etc/3cxpbx/setupconfig.xml <<EOF
@@ -487,8 +488,8 @@ varLicenseContactCompany=
 varLicenseContactEmail=
 varLicenseContactPhone=
 FormDataOK=
-ScriptAbsolutPath="$(readlink -f "$0")"
 ScriptFolderPath="$(dirname -- "$0")"
+ProjectFolderName="smartcollab-3cx"
 
 echo -e " \e[34m
                   _____               _               _     _         
@@ -578,7 +579,6 @@ while [[ $FormDataOK != "j" ]]; do
     fi
 
   done
-
 
   varContentValid="false"
   while [[ $varContentValid = "false" ]]; do
