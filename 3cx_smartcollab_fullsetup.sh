@@ -648,6 +648,8 @@ done
 
 apt-get updates && apt-get upgrade -y
 
+apt-get install host -y
+
 varDomain="$varDomain.managed-network.ch"
 
 # UFW Firewall installieren
