@@ -648,7 +648,13 @@ done
 
 apt-get updates && apt-get upgrade -y
 
-apt-get install host -y
+if ! [ -x "$(command -v certbot)" ]; then
+  apt-get install host -y || error "Installation des Tools Host fehlgeschlagen"
+  OK "Host Tool wurde installiert"
+else
+  OK "Host Tool wurde bereits installiert"
+fi
+
 
 varDomain="$varDomain.managed-network.ch"
 
