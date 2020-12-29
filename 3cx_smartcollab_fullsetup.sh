@@ -8,7 +8,6 @@
 #
 #                    Version 1.0 | 29.12.2020
 
-
 # Global variables
 MyPublicIP=$(curl ipinfo.io/ip)
 DependenciesOK=
@@ -26,7 +25,7 @@ ScriptFolderPath="$(dirname -- "$0")"
 ProjectFolderName="smartcollab-3cx"
 
 # Beende das Script sollte ein Fehler auftreten
-set -euo pipefail
+#set -euo pipefail
 
 # Auffangen des Shell Terminator
 trap ctrl_c INT
@@ -70,6 +69,18 @@ Bitte prüfe den Log-Output.\e[39m"
   exit 1
 }
 
+CreateConfigFile() {
+
+  mkdir -p /etc/btc
+  # Erstelle den System Info Text
+  cat >/etc/btc/smartcollab_3cx.conf <<EOF
+Domain:$1
+Company:$2     
+EOF
+
+  OK "Konfigfile wurde in /etc/btc/smartcollab_3cx.conf angelegt"
+}
+
 function Install3CX() {
   wget -O- http://downloads-global.3cx.com/downloads/3cxpbx/public.key | sudo apt-key add -
   echo "deb http://downloads-global.3cx.com/downloads/debian stretch main" | sudo tee /etc/apt/sources.list.d/3cxpbx.list
@@ -77,19 +88,16 @@ function Install3CX() {
   sudo apt install net-tools dphys-swapfile || error "Installation der 3CX Prequisits"
   sudo apt install 3cxpbx -y || error "Installation der 3CX PBX"
 
+  OK "3CX PBX erfolgreich installiert"
 }
 
 function CreateLoginBanner() {
 
-  if [[ -f "/etc/motd" ]]; then
-    rm /etc/motd
-  fi
-  if [[ -f "/etc/update-motd.d/10-uname" ]]; then
-    rm /etc/update-motd.d/10-uname
-  fi
+  rm -f /etc/motd
+  rm -f /etc/update-motd.d/10-uname
 
   # Erstelle das Logo
-  cat >/etc/update-motd.d/10logo <<EOF
+  cat >/etc/update-motd.d/00-logo <<EOF
 #!/bin/bash
 echo -e " \e[34m
   _____               _               _     _         
@@ -102,11 +110,11 @@ __________________________________________________________\e[39m"
 EOF
 
   # Erstelle den System Info Text
-  cat >/etc/update-motd.d/20infobanner <<EOF
+  cat >/etc/update-motd.d/01-infobanner <<EOF
 #!/bin/bash
 echo -e " \e[34m
-Kunde:         $varLicenseContactCompany
-3CX Domain:    https://$varDomain
+Kunde:         $1
+3CX Domain:    https://$2
 Datum:         \$( date )
 OS:            \$( lsb_release -a 2>&1 | grep  'Description' | cut -f2 )
 Uptime:        \$( uptime -p )
@@ -117,6 +125,7 @@ EOF
   # Neu erstellte Banner ausführbar machen
   chmod a+x /etc/update-motd.d/*
 
+  OK "Login Banner wurde erfolgreich erstellt"
 }
 
 function CheckDomainRecord() {
@@ -151,6 +160,7 @@ function RequestCertificate() {
   # Provisorische kopie ins SSL Directory erstellen für 3CX Setup
   cp /etc/letsencrypt/live/"${1}"/privkey.pem /etc/ssl/ && cp /etc/letsencrypt/live/"${1}"/fullchain.pem /etc/ssl/ || error "Zertifikat für ${1} konnte nicht ins SSL Verzeichniss kopiert werden"
 
+  OK "Zertifikat wurde beantragt und gespeichert"
 }
 
 function ConfigureCertbot() {
@@ -159,6 +169,7 @@ function ConfigureCertbot() {
   echo "pre_hook = service nginx stop" >>"/etc/letsencrypt/renewal/${1}.conf" || error "Cerbot Pre-Hook konnte nicht angelegt werden"
   echo "post_hook = cp /etc/letsencrypt/live/${1}/privkey.pem /var/lib/3cxpbx/Bin/nginx/conf/Instance1/${1}-key.pem && cp /etc/letsencrypt/live/${1}/fullchain.pem /var/lib/3cxpbx/Bin/nginx/conf/Instance1/${1}-crt.pem && service nginx start" >>"/etc/letsencrypt/renewal/$varDomain.conf" || error "Cerbot Post-Hook konnte nicht angelegt werden"
 
+  OK "Post und Pre-Hook wurden erfolgreich angelegt"
 }
 
 function SetupFW() {
@@ -498,6 +509,8 @@ function Create3CXConfig() {
 </SetupConfig>
 EOF
 
+  OK "3CX Konfig erfolgreich erstellt"
+
 }
 
 ########################################## Script entry point ################################################
@@ -657,11 +670,9 @@ if ! [ -d "/etc/letsencrypt/live/$varDomain/" ]; then
 
   # Standalone Zertifikat requesten
   RequestCertificate "$varDomain"
-  OK "Zertifikat für $varDomain erfolgreich beantragt"
 
   # Pre und Post Hook für Certbot erstellen
   ConfigureCertbot "$varDomain"
-  OK "Certbot konfiguration abgeschlossen"
 
 else
   OK "Zertifikat wurde bereits angelegt"
@@ -673,12 +684,15 @@ varKeyPath="/etc/ssl/privkey.pem"
 # Firewall konfigurieren
 #CreateFWConfig
 
+# Setzen der Zeitzone
+timedatectl set-timezone Europe/Zurich
+
 # Erstellen der 3CX XML autosetup config
-Create3CXConfig "$varDomain" "$varFullChainPath" "$varKeyPath" "$varLicense" "$var3CXPW" "$varLicenseContactName" "$varLicenseContactCompany" "$varLicenseContactEmail" "$varLicenseContactPhone" "$MyPublicIP"
-OK "3CX setup Config generiert und gespeichert"
-# Installation der 3CX
+Create3CXConfig
+
 Install3CX
-OK "3CX erfolgreich installiert"
+
+CreateConfigFile "$varDomain" "$varLicenseContactCompany"
 
 # Löschen des Temporären Zertifikats und Key
 if [[ -f "$varFullChainPath" ]]; then
@@ -691,8 +705,7 @@ if [[ -f "$varKeyPath" ]]; then
 fi
 
 # Generieren des Login Banner
-CreateLoginBanner
-OK "Login Welcome Banner wurde angelegt"
+CreateLoginBanner "$varLicenseContactCompany" "$varDomain"
 
 echo -e " \e[34m
                   _____               _               _     _         
